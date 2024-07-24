@@ -1,0 +1,79 @@
+1. 얕은 복사(Shallow Copy)
+- 개념
+    얕은 복사는 객체의 가장 바깥쪽 레벨만 복사하고, 내부 객체는 복사하지 않습니다. 
+    즉, 얕은 복사는 객체의 구조만 복사하고, 내부의 객체들은 원본 객체와 같은 참조를 가집니다.
+
+- 특징
+    복사된 객체는 원본 객체와 같은 내부 객체를 참조합니다.
+    원본 객체와 복사된 객체는 서로 다른 객체이지만, 내부의 리스트나 딕셔너리 같은 가변 객체는 공유됩니다.
+
+- 사용 방법
+    얕은 복사를 하려면 copy 모듈의 copy() 함수를 사용합니다.
+    `
+    import copy
+
+    original_list = [1, 2, [3, 4]]
+    shallow_copied_list = copy.copy(original_list)
+    `
+
+- 예제
+    import copy
+
+    # 원본 리스트
+    original_list = [1, 2, [3, 4]]
+    
+    # 얕은 복사
+    shallow_copied_list = copy.copy(original_list)
+    
+    # 원본과 복사본의 확인
+    print("Original:", original_list)          # [1, 2, [3, 4]]
+    print("Shallow Copy:", shallow_copied_list) # [1, 2, [3, 4]]
+    
+    # 내부 객체 수정
+    shallow_copied_list[2][0] = 'X'
+    
+    print("Original after modification:", original_list)          # [1, 2, ['X', 4]]
+    print("Shallow Copy after modification:", shallow_copied_list) # [1, 2, ['X', 4]]
+
+=> 설명: shallow_copied_list의 내부 리스트 [3, 4]를 수정하면 original_list의 내부 리스트도 변경됩니다. 
+    이는 두 리스트가 같은 내부 리스트를 참조하기 때문입니다. 
+
+2. 깊은 복사 (Deep Copy)
+- 개념
+    깊은 복사는 객체와 그 안에 포함된 모든 객체들을 완전히 복사하는 방식입니다.
+    즉, 원본 객체와 복사된 객체는 독립적인 객체들이 됩니다.
+
+- 특징
+    복사된 객체는 원본 객체와 모든 내부 객체까지 별도로 복사합니다.
+    원본 객체와 복사된 객체는 모든 면에서 독립적입니다.
+
+- 사용 방법
+    깊은 복사를 하려면 copy 모듈의 deepcopy() 함수를 사용합니다.
+    `
+    import copy
+
+    original_list = [1, 2, [3, 4]]
+    deep_copied_list = copy.deepcopy(original_list)
+    `
+
+- 예제
+    import copy
+
+    # 원본 리스트
+    original_list = [1, 2, [3, 4]]
+    
+    # 깊은 복사
+    deep_copied_list = copy.deepcopy(original_list)
+    
+    # 원본과 복사본의 확인
+    print("Original:", original_list)          # [1, 2, [3, 4]]
+    print("Deep Copy:", deep_copied_list)      # [1, 2, [3, 4]]
+    
+    # 내부 객체 수정
+    deep_copied_list[2][0] = 'X'
+    
+    print("Original after modification:", original_list)          # [1, 2, [3, 4]]
+    print("Deep Copy after modification:", deep_copied_list)      # [1, 2, ['X', 4]]
+
+=> 설명: deep_copied_list의 내부 리스트 [3, 4]를 수정해도 original_list의 내부 리스트는 변경되지 않습니다. 
+    이는 두 리스트가 완전히 독립적인 객체이기 때문입니다.
