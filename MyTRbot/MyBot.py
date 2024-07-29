@@ -18,7 +18,7 @@ class MyBot(QMainWindow, form_class):
         super().__init__() # 부모 클래스(QMainWindow)의 생성자 호출
         self.setUI()
         self.kiwoom = QAxWidget("KHOPENAPI.KHOpenAPICtrl.1")
-        self.login()
+        self.login() #로그인 > CommConnect() > 로그인창 출력 > OnEventConnect(event_connect) 발생
 
         #kiwoom event
         self.kiwoom.OnEventConnect.connect(self.event_connect)
