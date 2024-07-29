@@ -45,8 +45,8 @@ class MyBot(QMainWindow, form_class):
         # 로그인 정보
         accCnt = self.kiwoom.dynamicCall("GetLoginInfo(QString)", "ACCOUNT_CNT") #계좌개수
         accList = self.kiwoom.dynamicCall("GetLoginInfo(QString)", "ACCLIST") #보유계좌 목록
-        accList = accList.split(";")  #accList = "계좌;계좌;" -> ['계좌', '계좌']
-        accList.pop()
+        accList = accList.split(";")  #accList = "계좌;계좌;" -> ['계좌', '계좌', '']
+        accList.pop() #['계좌', '계좌']
         userId = self.kiwoom.dynamicCall("GetLoginInfo(QString)", "USER_ID") #사용자 ID
         userName = self.kiwoom.dynamicCall("GetLoginInfo(QString)", "USER_NAME") #사용자 이름
         serverGubun = self.kiwoom.dynamicCall("GetLoginInfo(QString)", "GetServerGubun") #접속서버 구분 (1:모의투자, 나머지: 실거래 서버)
