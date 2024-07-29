@@ -27,7 +27,7 @@
      <string>계좌번호</string>
     </property>
    </widget>
-   <widget class="QComboBox" name="comboBox">
+   <widget class="QComboBox" name="accComboBox">
     <property name="geometry">
      <rect>
       <x>80</x>

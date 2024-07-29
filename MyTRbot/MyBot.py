@@ -33,12 +33,32 @@ class MyBot(QMainWindow, form_class):
         if nErrCode == 0:
             print("로그인 성공")
             self.statusbar.showMessage("로그인 성공")
+            self.get_login_info() #로그인 정보 가져오기
         elif nErrCode == -100:
             print("사용자 정보교환 실패")
         elif nErrCode == -101:
             print("서버접속 실패")
         elif nErrCode == -102:
             print("버전처리 실패")
+
+    def get_login_info(self):
+        # 로그인 정보
+        accCnt = self.kiwoom.dynamicCall("GetLoginInfo(QString)", "ACCOUNT_CNT") #계좌개수
+        accList = self.kiwoom.dynamicCall("GetLoginInfo(QString)", "ACCLIST") #보유계좌 목록
+        accList = accList.split(";")  #accList = "계좌;계좌;" -> ['계좌', '계좌']
+        accList.pop()
+        userId = self.kiwoom.dynamicCall("GetLoginInfo(QString)", "USER_ID") #사용자 ID
+        userName = self.kiwoom.dynamicCall("GetLoginInfo(QString)", "USER_NAME") #사용자 이름
+        serverGubun = self.kiwoom.dynamicCall("GetLoginInfo(QString)", "GetServerGubun") #접속서버 구분 (1:모의투자, 나머지: 실거래 서버)
+
+        if serverGubun == "1":
+            serverGubun = "모의투자"
+        else:
+            serverGubun = "실거래 서버"
+
+        self.statusbar.showMessage(serverGubun)
+        self.accComboBox.addItems(accList) #ComboBox에 StringList를 넣음
+        self.accComboBox.setCurrentIndex(1)
 
 
 if __name__ == '__main__':
