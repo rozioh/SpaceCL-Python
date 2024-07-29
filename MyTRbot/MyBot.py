@@ -117,6 +117,10 @@ class MyBot(QMainWindow, form_class):
                 if item.itemName == itemName:
                     self.itemCodeTextEdit.setPlainText(item.itemCode)
                     self.getitemInfo(item.itemCode) #현재가 가져오기
+        else:
+            #종목명이 비었을 때 조회 시 종목코드와 가격 초기화
+            self.itemCodeTextEdit.setPlainText("")
+            self.priceSpinBox.setValue(0)
 
     def getitemInfo(self, code):
         #종목정보 TR Data
