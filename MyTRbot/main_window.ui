@@ -154,6 +154,9 @@
       <height>31</height>
      </rect>
     </property>
+    <property name="maximum">
+     <number>999999999</number>
+    </property>
    </widget>
    <widget class="QSpinBox" name="priceSpinBox">
     <property name="geometry">
@@ -163,6 +166,9 @@
       <width>111</width>
       <height>31</height>
      </rect>
+    </property>
+    <property name="maximum">
+     <number>999999999</number>
     </property>
    </widget>
    <widget class="QComboBox" name="tradeGubunComboBox">

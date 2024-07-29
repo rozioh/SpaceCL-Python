@@ -25,7 +25,10 @@ class MyBot(QMainWindow, form_class):
 
         #kiwoom event
         self.kiwoom.OnEventConnect.connect(self.event_connect)
+        self.kiwoom.OnReceiveTrData.connect(self.receive_trData)
 
+        #Ui_Trigger
+        self.searchItemButton.clicked.connect(self.searchItem) #종목 조회
     def setUI(self):
         self.setupUi(self) # Qt Designer로 디자인한 UI를 현재 인스턴스에 설정
 
@@ -103,6 +106,31 @@ class MyBot(QMainWindow, form_class):
 
                 item = dm.DataModel.ItemInfo(code, name)
                 self.myModel.itemList.append(item) #dm을 만들어서 itemList에 저장
+
+    def searchItem(self):
+        #조회 버튼 클릭 시 호출
+        #myModel에 저장된 itemList에서 itemName과 일치하는 것의 itemCode를 가져옴
+        print("조회버튼 클릭")
+        itemName = self.searchItemTextEdit.toPlainText()
+        if itemName != "":
+            for item in self.myModel.itemList:
+                if item.itemName == itemName:
+                    self.itemCodeTextEdit.setPlainText(item.itemCode)
+                    self.getitemInfo(item.itemCode) #현재가 가져오기
+
+    def getitemInfo(self, code):
+        #종목정보 TR Data
+        #SetInputValue(사용자 호출) -> CommRqData(사용자 호출) -> OnReceiveTrData(이벤트 발생)
+        self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "종목코드", code)
+        self.kiwoom.dynamicCall("CommRqData(QString, QString, int, QString)", "주식기본정보요청", "OPT10001", 0, "5000")
+
+    def receive_trData(self, sScrNo, sRQName, sTrCode, sRecordName, sPrevNext, nDataLength, sErrorCode, sMessage, sSplmMsg):
+        #Tr 이벤트 함수
+        if sTrCode == "OPT10001":
+            if sRQName == "주식기본정보요청":
+                #현재가 priceSpinBox
+                currentPrice = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRecordName, 0, "현재가")
+                self.priceSpinBox.setValue(abs(int(currentPrice.lstrip())))
 
 
 if __name__ == '__main__':
