@@ -145,7 +145,7 @@
      </rect>
     </property>
    </widget>
-   <widget class="QSpinBox" name="volumSpinBox">
+   <widget class="QSpinBox" name="volumeSpinBox">
     <property name="geometry">
      <rect>
       <x>610</x>

@@ -30,6 +30,7 @@ class MyBot(QMainWindow, form_class):
         #Ui_Trigger
         self.searchItemButton.clicked.connect(self.searchItem) #종목 조회
         self.buyPushButton.clicked.connect(self.itemBuy) #매수 버튼
+        self.sellPushButton.clicked.connect(self.itemSell) #매도 버튼
 
     def setUI(self):
         self.setupUi(self) # Qt Designer로 디자인한 UI를 현재 인스턴스에 설정
@@ -117,7 +118,9 @@ class MyBot(QMainWindow, form_class):
             for item in self.myModel.itemList:
                 if item.itemName == itemName:
                     self.itemCodeTextEdit.setPlainText(item.itemCode)
+                    self.volumeSpinBox.setValue(0)
                     self.getitemInfo(item.itemCode) #현재가 가져오기
+
         else:
             #종목명이 비었을 때 조회 시 종목코드와 가격 초기화
             self.itemCodeTextEdit.setPlainText("")
@@ -139,23 +142,41 @@ class MyBot(QMainWindow, form_class):
                 self.priceSpinBox.setValue(abs(int(currentPrice.lstrip())))
 
     def itemBuy(self):
-        #매수 버튼 함수
+        #매수 함수
         if self.searchItemTextEdit.toPlainText() == "":
             QMessageBox.information(self, "Information", "종목명을 입력하세요.")
         else:
             print("매수버튼 클릭")
             acc = self.accComboBox.currentText() #계좌정보
             code = self.itemCodeTextEdit.toPlainText() #종목코드
-            amount = int(self.volumSpinBox.value()) #수량
+            amount = int(self.volumeSpinBox.value()) #수량
             price = int(self.priceSpinBox.value()) #가격
             hogaGb = self.gubunComboBox.currentText()[0:2] #가격구분(호가구분)
             if hogaGb == "03": #시장가(현재 거래되고 있는 가격)
-                price = 0
+                price = 0      #시장가(03)일 때, 주문가격 불필요 (0으로 입력)
 
+            #서버에 주문을 전송하는 함수
             self.kiwoom.dynamicCall("SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)",
-                                    ["주식주문", "6000", acc, 1, code, amount, price, hogaGb, ""]) #신규매수
+                                    ["주식주문", "6000", acc, 1, code, amount, price, hogaGb, ""]) #1 = 신규매수
 
+    def itemSell(self):
+        #매도 함수
+        if self.searchItemTextEdit.toPlainText() == "":
+            QMessageBox.information(self, "Information", "종목명을 입력하세요.")
+        else:
+            print("매도버튼 클릭")
+            acc = self.accComboBox.currentText()  # 계좌정보
+            code = self.itemCodeTextEdit.toPlainText()  # 종목코드
+            amount = int(self.volumeSpinBox.value())  # 수량
+            price = int(self.priceSpinBox.value())  # 가격
+            hogaGb = self.gubunComboBox.currentText()[0:2]  # 가격구분(호가구분)
+            if hogaGb == "03": #시장가(현재 거래되고 있는 가격)
+                price = 0      #시장가(03)일 때, 주문가격 불필요 (0으로 입력)
 
+            #서버에 주문을 전송하는 함수
+            self.kiwoom.dynamicCall("SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)",
+                                    ["주식주문", "6500", acc, 2, code, amount, price, hogaGb, ""]) #2 = 신규매도
+            
 if __name__ == '__main__':
     app = QApplication(sys.argv) # QApplication 객체 생성
     myApp = MyBot() # MyBot 클래스의 인스턴스 생성
