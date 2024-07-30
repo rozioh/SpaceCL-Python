@@ -97,6 +97,7 @@ class MyBot(QMainWindow, form_class):
         self.statusbar.showMessage(serverGubun)
         self.accComboBox.addItems(accList) #ComboBox에 StringList를 넣음
         self.accComboBox.setCurrentIndex(1)
+        self.getMyAccount() #계좌정보 가져오기
 
     def getItemList(self):
         #종목코드 리스트 생성
@@ -129,7 +130,7 @@ class MyBot(QMainWindow, form_class):
 
     def getitemInfo(self, code):
         #종목정보 TR Data
-        #SetInputValue(사용자 호출) -> CommRqData(사용자 호출) -> OnReceiveTrData(이벤트 발생)
+        #SetInputValue(사용자 호출) -> CommRqData(사용자 호출) -> OnReceiveTrData(이벤트 발생) -> GetCommData(수신 데이터 가져오기)
         self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "종목코드", code)
         self.kiwoom.dynamicCall("CommRqData(QString, QString, int, QString)", "주식기본정보요청", "OPT10001", 0, "5000")
 
@@ -138,8 +139,43 @@ class MyBot(QMainWindow, form_class):
         if sTrCode == "OPT10001":
             if sRQName == "주식기본정보요청":
                 #현재가 priceSpinBox
-                currentPrice = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRecordName, 0, "현재가")
+                currentPrice = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "현재가")
                 self.priceSpinBox.setValue(abs(int(currentPrice.lstrip())))
+        elif sTrCode == "OPW00018":
+            if sRQName == "계좌평가잔고내역":
+                #테이블 세팅
+                column_head = ["종목번호", "종목명", "보유수량", "매입가", "현재가", "평가손익", "수익률(%)"]
+                colCount = len(column_head)
+                rowCount = self.kiwoom.dynamicCall("GetRepeatCnt(QString, QString)", sTrCode, sRQName) #데이터 수신 시 멀티데이터의 개수 반환
+                self.stockListTableWidget.setColumnCount(colCount) #열 설정
+                self.stockListTableWidget.setRowCount(rowCount) #행 설정
+                self.stockListTableWidget.setHorizontalHeaderLabels(column_head) #수평 헤더 레이블 설정
+
+                for index in range(rowCount):
+                    #데이터 가져오기
+                    itemCode = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "종목번호").strip(" ").strip("A")
+                    itemName = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "종목명").strip(" ")
+                    quantity = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "보유수량"))
+                    buyingPrice = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "매입가"))
+                    currentPrice = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "현재가"))
+                    estimateProfit = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "평가손익"))
+                    profitRate = float(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "수익률(%)"))
+
+                    print(itemCode,", ",itemName,", ",quantity,", ",buyingPrice,", ",currentPrice,", ",estimateProfit,", ",profitRate)
+
+                    #StockBalance에 저장한 데이터 모델을 stockBalanceList에 저장
+                    stockBalance = dm.DataModel.StockBalance(itemCode, itemName, quantity, buyingPrice, currentPrice, estimateProfit, profitRate)
+                    self.myModel.stockBalanceList.append(stockBalance)
+
+                    #테이블 셋
+                    self.stockListTableWidget.setItem(index, 0, QTableWidgetItem(itemCode)) #setItem(row, column, QTableWidgetItem *item)
+                    self.stockListTableWidget.setItem(index, 1, QTableWidgetItem(itemName))
+                    self.stockListTableWidget.setItem(index, 2, QTableWidgetItem(str(quantity)))
+                    self.stockListTableWidget.setItem(index, 3, QTableWidgetItem(str(buyingPrice)))
+                    self.stockListTableWidget.setItem(index, 4, QTableWidgetItem(str(currentPrice)))
+                    self.stockListTableWidget.setItem(index, 5, QTableWidgetItem(str(estimateProfit)))
+                    self.stockListTableWidget.setItem(index, 6, QTableWidgetItem(f"{profitRate:.2f}")) #소수점 두자리까지 출력
+
 
     def itemBuy(self):
         #매수 함수
@@ -176,7 +212,19 @@ class MyBot(QMainWindow, form_class):
             #서버에 주문을 전송하는 함수
             self.kiwoom.dynamicCall("SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)",
                                     ["주식주문", "6500", acc, 2, code, amount, price, hogaGb, ""]) #2 = 신규매도
-            
+
+    def getMyAccount(self):
+        #계좌평가잔고내역요청 TR Data
+        #SetInputValue(사용자 호출) -> CommRqData(사용자 호출) -> OnReceiveTrData(이벤트 발생) -> GetCommData(수신 데이터 가져오기)
+
+        account = self.accComboBox.currentText() #계좌번호
+        self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "계좌번호", account)
+        self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "비밀번호", "") #사용안함 = 공백
+        self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "비밀번호입력매체구분", "00") #00(공백불가)
+        self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "조회구분", "2") #1:합산, 2:개별
+
+        self.kiwoom.dynamicCall("CommRqData(QString, QString, int, QString)", "계좌평가잔고내역", "OPW00018", 0, "5100")
+
 if __name__ == '__main__':
     app = QApplication(sys.argv) # QApplication 객체 생성
     myApp = MyBot() # MyBot 클래스의 인스턴스 생성
