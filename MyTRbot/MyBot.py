@@ -29,6 +29,8 @@ class MyBot(QMainWindow, form_class):
 
         #Ui_Trigger
         self.searchItemButton.clicked.connect(self.searchItem) #종목 조회
+        self.buyPushButton.clicked.connect(self.itemBuy) #매수 버튼
+
     def setUI(self):
         self.setupUi(self) # Qt Designer로 디자인한 UI를 현재 인스턴스에 설정
 
@@ -110,7 +112,6 @@ class MyBot(QMainWindow, form_class):
     def searchItem(self):
         #조회 버튼 클릭 시 호출
         #myModel에 저장된 itemList에서 itemName과 일치하는 것의 itemCode를 가져옴
-        print("조회버튼 클릭")
         itemName = self.searchItemTextEdit.toPlainText()
         if itemName != "":
             for item in self.myModel.itemList:
@@ -121,6 +122,7 @@ class MyBot(QMainWindow, form_class):
             #종목명이 비었을 때 조회 시 종목코드와 가격 초기화
             self.itemCodeTextEdit.setPlainText("")
             self.priceSpinBox.setValue(0)
+            QMessageBox.information(self, "Information", "종목명을 입력하세요.")
 
     def getitemInfo(self, code):
         #종목정보 TR Data
@@ -135,6 +137,23 @@ class MyBot(QMainWindow, form_class):
                 #현재가 priceSpinBox
                 currentPrice = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRecordName, 0, "현재가")
                 self.priceSpinBox.setValue(abs(int(currentPrice.lstrip())))
+
+    def itemBuy(self):
+        #매수 버튼 함수
+        if self.searchItemTextEdit.toPlainText() == "":
+            QMessageBox.information(self, "Information", "종목명을 입력하세요.")
+        else:
+            print("매수버튼 클릭")
+            acc = self.accComboBox.currentText() #계좌정보
+            code = self.itemCodeTextEdit.toPlainText() #종목코드
+            amount = int(self.volumSpinBox.value()) #수량
+            price = int(self.priceSpinBox.value()) #가격
+            hogaGb = self.gubunComboBox.currentText()[0:2] #가격구분(호가구분)
+            if hogaGb == "03": #시장가(현재 거래되고 있는 가격)
+                price = 0
+
+            self.kiwoom.dynamicCall("SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)",
+                                    ["주식주문", "6000", acc, 1, code, amount, price, hogaGb, ""]) #신규매수
 
 
 if __name__ == '__main__':
