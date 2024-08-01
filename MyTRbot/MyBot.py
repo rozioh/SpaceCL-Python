@@ -98,6 +98,7 @@ class MyBot(QMainWindow, form_class):
         self.accComboBox.addItems(accList) #ComboBox에 StringList를 넣음
         self.accComboBox.setCurrentIndex(1)
         self.getMyAccount() #계좌정보 가져오기
+        self.getOutstandingRequest() #미체결요청 가져오기
 
     def getItemList(self):
         #종목코드 리스트 생성
@@ -161,8 +162,6 @@ class MyBot(QMainWindow, form_class):
                     estimateProfit = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "평가손익"))
                     profitRate = float(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "수익률(%)"))
 
-                    print(itemCode,", ",itemName,", ",quantity,", ",buyingPrice,", ",currentPrice,", ",estimateProfit,", ",profitRate)
-
                     #StockBalance에 저장한 데이터 모델을 stockBalanceList에 저장
                     stockBalance = dm.DataModel.StockBalance(itemCode, itemName, quantity, buyingPrice, currentPrice, estimateProfit, profitRate)
                     self.myModel.stockBalanceList.append(stockBalance)
@@ -176,7 +175,45 @@ class MyBot(QMainWindow, form_class):
                     self.stockListTableWidget.setItem(index, 5, QTableWidgetItem(str(estimateProfit)))
                     self.stockListTableWidget.setItem(index, 6, QTableWidgetItem(f"{profitRate:.2f}")) #소수점 두자리까지 출력
 
+        elif sTrCode == "OPT10075":
+            if sRQName == "미체결요청":
+                # 테이블 세팅
+                column_head = ["종목코드", "종목명", "주문번호", "주문수량", "주문가격", "미체결수량", "주문구분", "시간", "현재가"]
+                colCount = len(column_head)
+                rowCount = self.kiwoom.dynamicCall("GetRepeatCnt(QString, QString)", sTrCode, sRQName)
+                #outstandingTableWidget에 col, row, head 세팅
+                self.outstandingTableWidget.setColumnCount(colCount)
+                self.outstandingTableWidget.setRowCount(rowCount)
+                self.outstandingTableWidget.setHorizontalHeaderLabels(column_head)
 
+                for index in range(rowCount):
+                    #데이터 가져오기
+                    itemCode = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "종목코드").strip(" ").strip("A")
+                    itemName = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "종목명").strip(" ")
+                    orderNumber = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "주문번호").strip(" ")
+                    orderQuantity = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "주문수량").strip(" ")
+                    orderPrice = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "주문가격").strip(" ")
+                    outstandingQuantity = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "미체결수량").strip(" ")
+                    orderGubun = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "주문구분").strip(" ").strip("+").strip("-")
+                    time = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "시간").strip(" ")
+                    currentPrice = abs(int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "현재가").strip(" ")))
+
+                    print("미체결요청: ",itemCode,", ", itemName,", ",orderNumber,", ",orderQuantity,", ",orderPrice,", ",outstandingQuantity,", ",orderGubun,", ",time,", ",currentPrice)
+
+                    #데이터 모델 형태로 저장 후 outstandingBalanceList에 추가
+                    outstandingBalance = dm.DataModel.OutstandingBalance(itemCode, itemName, orderNumber, orderQuantity, orderPrice, outstandingQuantity, orderGubun, time, currentPrice)
+                    self.myModel.outstandingBalanceList.append(outstandingBalance)
+
+                    #main_window UI의 미체결주문 탭에 테이블 셋
+                    self.outstandingTableWidget.setItem(index, 0, QTableWidgetItem(str(itemCode)))
+                    self.outstandingTableWidget.setItem(index, 1, QTableWidgetItem(str(itemName)))
+                    self.outstandingTableWidget.setItem(index, 2, QTableWidgetItem(str(orderNumber)))
+                    self.outstandingTableWidget.setItem(index, 3, QTableWidgetItem(str(orderQuantity)))
+                    self.outstandingTableWidget.setItem(index, 4, QTableWidgetItem(str(orderPrice)))
+                    self.outstandingTableWidget.setItem(index, 5, QTableWidgetItem(str(outstandingQuantity)))
+                    self.outstandingTableWidget.setItem(index, 6, QTableWidgetItem(str(orderGubun)))
+                    self.outstandingTableWidget.setItem(index, 7, QTableWidgetItem(str(time)))
+                    self.outstandingTableWidget.setItem(index, 8, QTableWidgetItem(str(currentPrice)))
     def itemBuy(self):
         #매수 함수
         if self.searchItemTextEdit.toPlainText() == "":
@@ -224,6 +261,19 @@ class MyBot(QMainWindow, form_class):
         self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "조회구분", "2") #1:합산, 2:개별
 
         self.kiwoom.dynamicCall("CommRqData(QString, QString, int, QString)", "계좌평가잔고내역", "OPW00018", 0, "5100")
+
+    def getOutstandingRequest(self):
+        #미체결요청 TR Data
+        # SetInputValue(사용자 호출) -> CommRqData(사용자 호출) -> OnReceiveTrData(이벤트 발생) -> GetCommData(수신 데이터 가져오기)
+        account = self.accComboBox.currentText() #계좌번호
+        self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "계좌번호", account)
+        self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "전체종목구분", "0") #0:전체, 1:종목
+        self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "매매구분", "0") #0:전체, 1:매도, 2:매수
+        self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "종목코드", "") #공백허용: 전체종목구분=0으로 전체 종목 대상으로 조회됨
+        self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "체결구분", "1") #0:전체, 1:미체결, 2:체결
+
+        self.kiwoom.dynamicCall("CommRqData(QString, QString, int, QString)", "미체결요청", "OPT10075", 0, "5200")
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv) # QApplication 객체 생성
