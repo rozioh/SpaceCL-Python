@@ -153,7 +153,7 @@ class MyBot(QMainWindow, form_class):
                 self.stockListTableWidget.setHorizontalHeaderLabels(column_head) #수평 헤더 레이블 설정
 
                 for index in range(rowCount):
-                    #데이터 가져오기
+                    #멀티데이터 가져오기
                     itemCode = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "종목번호").strip(" ").strip("A")
                     itemName = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "종목명").strip(" ")
                     quantity = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "보유수량"))
@@ -174,6 +174,18 @@ class MyBot(QMainWindow, form_class):
                     self.stockListTableWidget.setItem(index, 4, QTableWidgetItem(str(currentPrice)))
                     self.stockListTableWidget.setItem(index, 5, QTableWidgetItem(str(estimateProfit)))
                     self.stockListTableWidget.setItem(index, 6, QTableWidgetItem(f"{profitRate:.2f}")) #소수점 두자리까지 출력
+
+                #싱글데이터 가져오기
+                totalBuyingPrice = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "총매입금액"))
+                currentTotalPrice = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "총평가금액"))
+                balanceAsset = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "추정예탁자산"))
+                totalEstimateProfit = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "총평가손익금액"))
+
+                #그리드 라벨 세팅. 소수점 고려하여 string으로 변환
+                self.totalBuyingPriceLabel.setText(str(totalBuyingPrice))
+                self.currentTotalPriceLabel.setText(str(currentTotalPrice))
+                self.balanceAssetLabel.setText(str(balanceAsset))
+                self.totalEstimateProfitLabel.setText(str(totalEstimateProfit))
 
         elif sTrCode == "OPT10075":
             if sRQName == "미체결요청":
