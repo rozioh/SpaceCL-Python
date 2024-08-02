@@ -32,6 +32,7 @@ class MyBot(QMainWindow, form_class):
         self.buyPushButton.clicked.connect(self.itemBuy) #매수 버튼
         self.sellPushButton.clicked.connect(self.itemSell) #매도 버튼
         self.outstandingTableWidget.itemSelectionChanged.connect(self.selectOutstandingOrder) #미체결주문 리스트 클릭
+        self.stockListTableWidget.itemSelectionChanged.connect(self.selectStockListOrder) #계좌잔고 리스트 클릭
 
     def setUI(self):
         self.setupUi(self) # Qt Designer로 디자인한 UI를 현재 인스턴스에 설정
@@ -310,6 +311,22 @@ class MyBot(QMainWindow, form_class):
                         self.tradeGubunComboBox.setCurrentIndex(index) #거래구분
             if check == 1: #리스트의 어떠한 아이템이 선택되었을 때(클릭)
                 break
+
+    def selectStockListOrder(self):
+        check = 0
+        for rowIndex in range(self.stockListTableWidget.rowCount()):
+            for colIndex in range(self.stockListTableWidget.columnCount()):
+                if self.stockListTableWidget.item(rowIndex, colIndex) != None:
+                    if self.stockListTableWidget.item(rowIndex, colIndex).isSelected() == True: #선택되었을때,
+                        check = 1
+                        self.searchItemTextEdit.setText(self.stockListTableWidget.item(rowIndex, 1).text().strip())  #종목명
+                        self.itemCodeTextEdit.setText(self.stockListTableWidget.item(rowIndex, 0).text())  #종목코드
+                        self.volumeSpinBox.setValue(int(self.stockListTableWidget.item(rowIndex, 2).text()))  #보유수량
+                        self.priceSpinBox.setValue(int(self.stockListTableWidget.item(rowIndex, 3).text()))  #매입가
+            if check == 1:
+                break
+
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv) # QApplication 객체 생성
