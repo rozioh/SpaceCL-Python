@@ -31,6 +31,7 @@ class MyBot(QMainWindow, form_class):
         self.searchItemButton.clicked.connect(self.searchItem) #종목 조회
         self.buyPushButton.clicked.connect(self.itemBuy) #매수 버튼
         self.sellPushButton.clicked.connect(self.itemSell) #매도 버튼
+        self.outstandingTableWidget.itemSelectionChanged.connect(self.selectOutstandingOrder) #미체결주문 리스트 클릭
 
     def setUI(self):
         self.setupUi(self) # Qt Designer로 디자인한 UI를 현재 인스턴스에 설정
@@ -210,6 +211,11 @@ class MyBot(QMainWindow, form_class):
                     time = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "시간").strip(" ")
                     currentPrice = abs(int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, index, "현재가").strip(" ")))
 
+                    format_time = lambda seconds: (f"{int(str(seconds)[:-4]):02}:"
+                                                   f"{int(str(seconds)[-4:-2]):02}:"
+                                                   f"{int(str(seconds)[-2:]):02}")
+                    formatted_time = format_time(time)
+
                     print("미체결요청: ",itemCode,", ", itemName,", ",orderNumber,", ",orderQuantity,", ",orderPrice,", ",outstandingQuantity,", ",orderGubun,", ",time,", ",currentPrice)
 
                     #데이터 모델 형태로 저장 후 outstandingBalanceList에 추가
@@ -224,7 +230,7 @@ class MyBot(QMainWindow, form_class):
                     self.outstandingTableWidget.setItem(index, 4, QTableWidgetItem(str(orderPrice)))
                     self.outstandingTableWidget.setItem(index, 5, QTableWidgetItem(str(outstandingQuantity)))
                     self.outstandingTableWidget.setItem(index, 6, QTableWidgetItem(str(orderGubun)))
-                    self.outstandingTableWidget.setItem(index, 7, QTableWidgetItem(str(time)))
+                    self.outstandingTableWidget.setItem(index, 7, QTableWidgetItem(str(formatted_time)))
                     self.outstandingTableWidget.setItem(index, 8, QTableWidgetItem(str(currentPrice)))
     def itemBuy(self):
         #매수 함수
@@ -286,6 +292,24 @@ class MyBot(QMainWindow, form_class):
 
         self.kiwoom.dynamicCall("CommRqData(QString, QString, int, QString)", "미체결요청", "OPT10075", 0, "5200")
 
+    def selectOutstandingOrder(self):
+        #미체결주문 리스트 클릭 시 오른쪽 정보란에 표시
+        check = 0
+        #미체결주문 테이블의 위치 확인
+        for rowIndex in range(self.outstandingTableWidget.rowCount()):
+            for colIndex in range(self.outstandingTableWidget.columnCount()):
+                if self.outstandingTableWidget.item(rowIndex, colIndex) != None:
+                    if self.outstandingTableWidget.item(rowIndex, colIndex).isSelected() == True: #선택 되었다면,
+                        check = 1 #선택여부 확인
+                        self.searchItemTextEdit.setText(self.outstandingTableWidget.item(rowIndex, 1).text()) #종목명
+                        self.itemCodeTextEdit.setText(self.outstandingTableWidget.item(rowIndex, 0).text()) #종목코드
+                        self.volumeSpinBox.setValue(int(self.outstandingTableWidget.item(rowIndex, 5).text())) #미체결수량
+                        self.priceSpinBox.setValue(int(self.outstandingTableWidget.item(rowIndex, 4).text())) #가격
+                        self.orderNumberTextEdit.setText(self.outstandingTableWidget.item(rowIndex, 2).text()) #원주문번호
+                        index = self.tradeGubunComboBox.findText(self.outstandingTableWidget.item(rowIndex, 6).text()) #거래구분 index 확인
+                        self.tradeGubunComboBox.setCurrentIndex(index) #거래구분
+            if check == 1: #리스트의 어떠한 아이템이 선택되었을 때(클릭)
+                break
 
 if __name__ == '__main__':
     app = QApplication(sys.argv) # QApplication 객체 생성
