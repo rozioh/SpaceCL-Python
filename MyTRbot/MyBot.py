@@ -33,6 +33,7 @@ class MyBot(QMainWindow, form_class):
         self.sellPushButton.clicked.connect(self.itemSell) #매도 버튼
         self.outstandingTableWidget.itemSelectionChanged.connect(self.selectOutstandingOrder) #미체결주문 리스트 클릭
         self.stockListTableWidget.itemSelectionChanged.connect(self.selectStockListOrder) #계좌잔고 리스트 클릭
+        self.changePushButton.clicked.connect(self.itemCorrect) #정정버튼 클릭
 
     def setUI(self):
         self.setupUi(self) # Qt Designer로 디자인한 UI를 현재 인스턴스에 설정
@@ -313,7 +314,9 @@ class MyBot(QMainWindow, form_class):
                 break
 
     def selectStockListOrder(self):
+        #계좌잔고 리스트 클릭 시 오른쪽 정보란에 표시
         check = 0
+        #테이블이 선택(클릭)되었는지 확인
         for rowIndex in range(self.stockListTableWidget.rowCount()):
             for colIndex in range(self.stockListTableWidget.columnCount()):
                 if self.stockListTableWidget.item(rowIndex, colIndex) != None:
@@ -325,6 +328,27 @@ class MyBot(QMainWindow, form_class):
                         self.priceSpinBox.setValue(int(self.stockListTableWidget.item(rowIndex, 3).text()))  #매입가
             if check == 1:
                 break
+
+    def itemCorrect(self):
+        #정정 버튼 클릭
+        acc = self.accComboBox.currentText().strip(" ") #계좌번호
+        code = self.itemCodeTextEdit.toPlainText.strip(" ") #종목코드
+        quantity = int(self.volumeSpinBox.value()) #수량
+        price = int(self.priceSpinBox.value()) #가격
+        hogaGb = self.gubunComboBox.currentText()[0:2] #시장가/지정가/...
+        orderType = self.tradeGubunComboBox.currentText().strip(" ") #거래구분 매수/매도/정정/...
+        if orderType == "매수" or orderType == "매수정정":
+            orderType = 5
+        elif orderType == "매도" or orderType == "매도정정":
+            orderType = 6
+
+        orderNumber = self.orderNumberTextEdit.toPlainText().stript(" ") #원주문번호
+        print("원주문번호 - ", orderNumber)
+
+        self.kiwoom.dynamicCall("SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)",
+                                ["주식주문", "6700", acc, orderType, code, quantity, price, hogaGb, orderNumber])
+        print("정정 주문 확인")
+
 
 
 
