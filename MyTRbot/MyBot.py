@@ -34,6 +34,7 @@ class MyBot(QMainWindow, form_class):
         self.outstandingTableWidget.itemSelectionChanged.connect(self.selectOutstandingOrder) #미체결주문 리스트 클릭
         self.stockListTableWidget.itemSelectionChanged.connect(self.selectStockListOrder) #계좌잔고 리스트 클릭
         self.changePushButton.clicked.connect(self.itemCorrect) #정정버튼 클릭
+        self.cancelPushButton.clicked.connect(self.itemCancel) #취소버튼 클릭
 
     def setUI(self):
         self.setupUi(self) # Qt Designer로 디자인한 UI를 현재 인스턴스에 설정
@@ -234,6 +235,11 @@ class MyBot(QMainWindow, form_class):
                     self.outstandingTableWidget.setItem(index, 6, QTableWidgetItem(str(orderGubun)))
                     self.outstandingTableWidget.setItem(index, 7, QTableWidgetItem(str(formatted_time)))
                     self.outstandingTableWidget.setItem(index, 8, QTableWidgetItem(str(currentPrice)))
+            # elif sRQName == "주식주문":
+            #     # 정정 결과 확인
+            #     currentPrice = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "주문번호")
+            #     print("결과: ", currentPrice)
+
     def itemBuy(self):
         #매수 함수
         if self.searchItemTextEdit.toPlainText() == "":
@@ -332,7 +338,7 @@ class MyBot(QMainWindow, form_class):
     def itemCorrect(self):
         #정정 버튼 클릭
         acc = self.accComboBox.currentText().strip(" ") #계좌번호
-        code = self.itemCodeTextEdit.toPlainText.strip(" ") #종목코드
+        code = self.itemCodeTextEdit.toPlainText().strip(" ") #종목코드
         quantity = int(self.volumeSpinBox.value()) #수량
         price = int(self.priceSpinBox.value()) #가격
         hogaGb = self.gubunComboBox.currentText()[0:2] #시장가/지정가/...
@@ -342,13 +348,31 @@ class MyBot(QMainWindow, form_class):
         elif orderType == "매도" or orderType == "매도정정":
             orderType = 6
 
-        orderNumber = self.orderNumberTextEdit.toPlainText().stript(" ") #원주문번호
+        orderNumber = self.orderNumberTextEdit.toPlainText().strip(" ") #원주문번호
         print("원주문번호 - ", orderNumber)
 
         self.kiwoom.dynamicCall("SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)",
                                 ["주식주문", "6700", acc, orderType, code, quantity, price, hogaGb, orderNumber])
         print("정정 주문 확인")
 
+    def itemCancel(self):
+        # 취소 버튼 클릭
+        acc = self.accComboBox.currentText().strip(" ") #계좌번호
+        code = self.itemCodeTextEdit.toPlainText().strip(" ") #종목코드
+        quantity = int(self.volumeSpinBox.value()) #수량
+        price = int(self.priceSpinBox.value()) #가격
+        hogaGb = self.gubunComboBox.currentText()[0:2] #시장가/지정가/...
+        orderType = self.tradeGubunComboBox.currentText().strip(" ") #거래구분 매수/매도/정정/...
+        if orderType == "매수" or orderType == "매수취소" or orderType == "매수정정":
+            orderType = 3
+        elif orderType == "매도" or orderType == "매도취소" or orderType == "매도정정":
+            orderType = 4
+
+        orderNumber = self.orderNumberTextEdit.toPlainText().strip(" ") #원주문번호
+        print(acc, code, quantity, price, hogaGb, orderType, orderNumber)
+
+        self.kiwoom.dynamicCall("SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)",
+                                ["주식주문", "6800", acc, orderType, code, quantity, price, hogaGb, orderNumber])
 
 
 
