@@ -235,10 +235,32 @@ class MyBot(QMainWindow, form_class):
                     self.outstandingTableWidget.setItem(index, 6, QTableWidgetItem(str(orderGubun)))
                     self.outstandingTableWidget.setItem(index, 7, QTableWidgetItem(str(formatted_time)))
                     self.outstandingTableWidget.setItem(index, 8, QTableWidgetItem(str(currentPrice)))
+            elif sRQName == "매수확인":
+                print("지정가 확인3")
+                # 지정가 매수결과 확인
+                orderNumber = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName,
+                                                      0,
+                                                      "주문번호")
+                print("주문번호 확인: ", orderNumber)
+                if orderNumber == "" or orderNumber == None:
+                    QMessageBox.information(self, "Information", "지정가 매수가 되지 않았습니다.")
+                    print("지정가 매수가 되지 않았습니다.")
+
             # elif sRQName == "주식주문":
             #     # 정정 결과 확인
             #     currentPrice = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "주문번호")
             #     print("결과: ", currentPrice)
+
+        elif sTrCode == "OPT10076":
+            print("확인1")
+            if sRQName == "매수확인":
+                print("시장가 확인2")
+                # 시장가 매수결과 확인
+                orderNumber = self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0,
+                                                      "주문번호")
+                print("주문번호 확인: ", orderNumber)
+                if orderNumber == "" or orderNumber == None:
+                    QMessageBox.information(self, "Information", "매수가 되지 않았습니다.")
 
     def itemBuy(self):
         #매수 함수
@@ -251,12 +273,33 @@ class MyBot(QMainWindow, form_class):
             amount = int(self.volumeSpinBox.value()) #수량
             price = int(self.priceSpinBox.value()) #가격
             hogaGb = self.gubunComboBox.currentText()[0:2] #가격구분(호가구분)
+            print(hogaGb)
             if hogaGb == "03": #시장가(현재 거래되고 있는 가격)
                 price = 0      #시장가(03)일 때, 주문가격 불필요 (0으로 입력)
+                print("시장가")
+
 
             #서버에 주문을 전송하는 함수
-            self.kiwoom.dynamicCall("SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)",
+            result = self.kiwoom.dynamicCall("SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)",
                                     ["주식주문", "6000", acc, 1, code, amount, price, hogaGb, ""]) #1 = 신규매수
+            print("itemBuy한 SendOrder result 확인", result)
+
+            # 체결요청 주문번호 TR Data
+            # SetInputValue(사용자 호출) -> CommRqData(사용자 호출) -> OnReceiveTrData(이벤트 발생) -> GetCommData(수신 데이터 가져오기)
+            account = self.accComboBox.currentText()  # 계좌번호
+            self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "계좌번호", account)
+            self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "전체종목구분", "0")  # 0:전체, 1:종목
+            self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "매매구분", "2")  # 0:전체, 1:매도, 2:매수
+            self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "종목코드", "")  # 공백허용: 전체종목구분=0으로 전체 종목 대상으로 조회됨
+            self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "체결구분", "")  # 0:전체, 1:미체결, 2:체결
+
+            if hogaGb == "03":
+                # 시장가
+                print("체결")
+                self.kiwoom.dynamicCall("CommRqData(QString, QString, int, QString)", "매수확인", "OPT10076", 0, "6000")
+            else:
+                print("미체결")
+                self.kiwoom.dynamicCall("CommRqData(QString, QString, int, QString)", "매수확인", "OPT10075", 0, "6000")
 
     def itemSell(self):
         #매도 함수
@@ -371,9 +414,9 @@ class MyBot(QMainWindow, form_class):
         orderNumber = self.orderNumberTextEdit.toPlainText().strip(" ") #원주문번호
         print(acc, code, quantity, price, hogaGb, orderType, orderNumber)
 
-        self.kiwoom.dynamicCall("SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)",
+        result = self.kiwoom.dynamicCall("SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)",
                                 ["주식주문", "6800", acc, orderType, code, quantity, price, hogaGb, orderNumber])
-
+        print("itemCancel의 sendOrder Return 값 확인: ", result)
 
 
 if __name__ == '__main__':
